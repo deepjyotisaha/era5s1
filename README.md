@@ -1,5 +1,7 @@
 # Interactive Learning for Deep Learning Concepts
 
+**🔗 Live demo: [deeplearning-concepts.netlify.app](https://deeplearning-concepts.netlify.app/)**
+
 A single self-contained web app that proves four foundational deep learning claims by training
 real (tiny) models live in the browser — no server, no backend, no ML library. Every chart,
 equation, and accuracy number on the page is computed by gradient descent that runs the moment
@@ -15,7 +17,11 @@ you scroll to a module, using nothing but vanilla JavaScript and `<canvas>`.
 
 ## Running it
 
-Open [`deep-learning-concepts-demo.html`](deep-learning-concepts-demo.html) directly in any modern
+Easiest: just open the **[live demo](https://deeplearning-concepts.netlify.app/)** — nothing to
+install.
+
+To run it locally instead, open
+[`deep-learning-concepts-demo.html`](deep-learning-concepts-demo.html) directly in any modern
 browser (double-click the file, or `file://` it) — there is no build step and no dependency to
 install. If you'd rather serve it, any static file server works, e.g.:
 
