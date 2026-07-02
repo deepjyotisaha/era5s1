@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Interactive Learning for Deep Learning Concepts</title>
+<style>
+  :root{
+    --bg:#0b0e14;
+    --panel:#131824;
+    --panel-border:#232a3b;
+    --ink:#e7ecf6;
+    --muted:#8b96ab;
+    --class0:#ff6b6b;
+    --class1:#4dabf7;
+    --accent:#ffd43b;
+    --good:#51cf66;
+    --bad:#ff6b6b;
+    --line:#ffe66d;
+    --purp:#c084fc;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(1200px 800px at 50% -10%, #16203a, var(--bg) 60%);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    padding:32px 20px 60px;
+    /* several widgets can be animating/mutating text at once on this single
+       page; disable scroll anchoring so their reflow never hijacks scroll
+       position while a learner is reading or using Prev/Top/Next. */
+    overflow-anchor:none;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  header{margin-bottom:24px;}
+  .tag{
+    display:inline-block;
+    font-size:12px;
+    letter-spacing:.08em;
+    color:var(--accent);
+    background:rgba(255,212,59,.1);
+    border:1px solid rgba(255,212,59,.35);
+    padding:3px 9px;
+    border-radius:999px;
+    margin-bottom:12px;
+    font-weight:600;
+  }
+  h1{font-size:26px;margin:0 0 8px;letter-spacing:-.01em;}
+  p.claim{
+    color:var(--muted);
+    font-size:15px;
+    line-height:1.55;
+    max-width:800px;
+    margin:0;
+  }
+  p.claim b{color:var(--ink);}
+
+  /* ---------- single-page section flow (mild separation, no tabs) ---------- */
+  html{scroll-behavior:smooth;}
+  .page{
+    margin-top:64px;
+    padding-top:44px;
+    border-top:1px solid var(--panel-border);
+  }
+  #page-home{margin-top:0;padding-top:0;border-top:none;}
+
+  .controls{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin:22px 0 20px;
+    flex-wrap:wrap;
+  }
+  button{
+    background:linear-gradient(180deg,#3d6bff,#2a52e0);
+    color:white;
+    border:none;
+    padding:11px 20px;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(58,100,255,.35);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  button:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(58,100,255,.45);}
+  button:active{transform:translateY(0);}
+  button:disabled{opacity:.55;cursor:default;transform:none;}
+  .status{font-size:13px;color:var(--muted);}
+  .status .dot{
+    display:inline-block;width:7px;height:7px;border-radius:50%;
+    background:var(--muted);margin-right:6px;
+  }
+  .status.training .dot{background:var(--accent);animation:pulse 1s infinite;}
+  .status.done .dot{background:var(--good);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  @media (max-width:760px){.grid{grid-template-columns:1fr;}}
+
+  .grid3{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:18px;
+  }
+  @media (max-width:980px){.grid3{grid-template-columns:1fr 1fr;}}
+  @media (max-width:620px){.grid3{grid-template-columns:1fr;}}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    padding:18px;
+  }
+  .panel h2{
+    font-size:14px;
+    margin:0 0 2px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel h2 .swatch{
+    width:10px;height:10px;border-radius:3px;
+  }
+  .panel .sub{font-size:12px;color:var(--muted);margin:0 0 12px;}
+  canvas{
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:10px;
+    background:#0d1220;
+    display:block;
+  }
+  .metrics{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px solid var(--panel-border);
+  }
+  .metrics .acc-label{font-size:12px;color:var(--muted);}
+  .metrics .acc-val{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .metrics .acc-val.low{color:var(--bad);}
+  .metrics .acc-val.high{color:var(--good);}
+  .epoch{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+  .proof{
+    margin-top:12px;
+    padding:10px 12px;
+    border-radius:8px;
+    background:rgba(255,230,109,.06);
+    border:1px solid rgba(255,230,109,.22);
+    font-size:12.5px;
+    line-height:1.55;
+    color:var(--ink);
+  }
+  .proof .eq{
+    display:block;
+    font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+    color:var(--line);
+    font-size:13px;
+    margin:4px 0 6px;
+  }
+  .proof.relu{
+    background:rgba(77,171,247,.06);
+    border-color:rgba(77,171,247,.22);
+  }
+  .proof.relu .eq{color:var(--class1);}
+  .proof.purp{
+    background:rgba(192,132,252,.07);
+    border-color:rgba(192,132,252,.25);
+  }
+  .proof.purp .eq{color:var(--purp);}
+  .proof .cmp{
+    display:block;
+    margin-top:6px;
+    color:var(--muted);
+    font-size:12px;
+  }
+
+  .matrixproof{
+    margin-top:20px;
+    padding:20px 22px;
+    border-radius:16px;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+  }
+  .matrixproof h3{
+    margin:0 0 6px;
+    font-size:15px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .matrixproof h3 .swatch{width:10px;height:10px;border-radius:3px;background:var(--purp);}
+  .matrixproof .sub{font-size:12px;color:var(--muted);margin:0 0 14px;}
+  .matrixproof pre{
+    font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+    font-size:13px;
+    line-height:1.9;
+    color:var(--ink);
+    background:#0d1220;
+    border:1px solid var(--panel-border);
+    border-radius:10px;
+    padding:14px 16px;
+    margin:0;
+    overflow-x:auto;
+  }
+  .matrixproof pre .dim{color:var(--muted);}
+  .matrixproof pre .num{color:var(--purp);}
+  .matrixproof pre .ok{color:var(--good);}
+
+  .nnlist{list-style:none;margin:0;padding:0;}
+  .nnrow{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:8px 0;border-bottom:1px solid var(--panel-border);font-size:13px;
+  }
+  .nnrow:last-child{border-bottom:none;}
+  .nnrow .tok{display:inline-flex;align-items:center;gap:6px;font-weight:600;min-width:58px;}
+  .nnrow .tok i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;}
+  .nnrow .arrow{color:var(--muted);font-size:12px;}
+  .nnrow .mark{margin-left:auto;font-weight:700;font-size:12px;white-space:nowrap;}
+  .nnrow .mark.yes{color:var(--good);}
+  .nnrow .mark.no{color:var(--bad);}
+  .nntally{margin-top:10px;padding-top:12px;border-top:1px solid var(--panel-border);font-size:13px;color:var(--muted);}
+  .nntally b{color:var(--ink);}
+
+  .grammarbox{
+    margin-top:20px;
+    padding:18px 20px;
+    border-radius:16px;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+  }
+  .grammarbox h3{margin:0 0 12px;font-size:14px;font-weight:600;line-height:1.5;}
+  .vocab{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+  .vocab .pill{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;
+    padding:5px 10px;border-radius:999px;background:#0d1220;border:1px solid var(--panel-border);
+  }
+  .vocab .pill i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none;}
+  .samples{font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;font-size:13px;line-height:1.9;color:var(--muted);}
+
+  .verdict{
+    margin-top:22px;
+    padding:16px 18px;
+    border-radius:12px;
+    background:rgba(81,207,102,.06);
+    border:1px solid rgba(81,207,102,.25);
+    font-size:14px;
+    line-height:1.6;
+    color:var(--ink);
+    display:none;
+  }
+  .verdict.show{display:block;}
+  .verdict b{color:var(--good);}
+  .legend{
+    display:flex;gap:18px;margin-top:10px;font-size:12px;color:var(--muted);
+    flex-wrap:wrap;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .legend i.ln{width:14px;height:2px;border-radius:0;}
+
+  /* ---------- app header (brand row, sits above the tab bar) ---------- */
+  .apphead{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    margin-bottom:22px;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    font-size:20px;
+    color:var(--accent);
+    width:38px;height:38px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:11px;
+    background:rgba(255,212,59,.1);
+    border:1px solid rgba(255,212,59,.3);
+    flex:none;
+  }
+  .brand-title{font-size:16px;font-weight:700;letter-spacing:-.01em;}
+  .brand-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+
+  /* ---------- home page cards ---------- */
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-top:22px;
+  }
+  @media (max-width:980px){.cards{grid-template-columns:1fr 1fr;}}
+  @media (max-width:620px){.cards{grid-template-columns:1fr;}}
+  .card{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    text-align:left;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    padding:18px;
+    gap:8px;
+    cursor:pointer;
+    font:inherit;
+    color:inherit;
+    text-decoration:none;
+    box-shadow:none;
+    transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.25);box-shadow:0 8px 24px rgba(0,0,0,.35);}
+  .card:active{transform:translateY(0);}
+  .card-tag{font-size:11px;font-weight:700;letter-spacing:.08em;}
+  .card h3{margin:2px 0 0;font-size:15px;line-height:1.35;color:var(--ink);}
+  .card p{margin:0;font-size:12.5px;line-height:1.55;color:var(--muted);flex:1;}
+  .card-cta{font-size:12px;font-weight:600;color:var(--accent);margin-top:4px;}
+
+  /* ---------- secondary (reset) button ---------- */
+  .btn-secondary{
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--panel-border);
+    box-shadow:none;
+  }
+  .btn-secondary:hover{
+    color:var(--ink);
+    background:rgba(255,255,255,.05);
+    box-shadow:none;
+    transform:translateY(-1px);
+  }
+  .btn-secondary:active{transform:translateY(0);}
+
+  /* ---------- per-section Previous / Top / Next footer nav ---------- */
+  .section-nav{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:36px;
+    padding-top:20px;
+    border-top:1px solid var(--panel-border);
+  }
+  .section-nav .nav-right{display:flex;gap:10px;margin-left:auto;}
+  .navbtn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    font-weight:600;
+    color:var(--muted);
+    text-decoration:none;
+    padding:9px 14px;
+    border-radius:9px;
+    border:1px solid var(--panel-border);
+    background:rgba(255,255,255,.02);
+    transition:color .15s ease, background .15s ease, border-color .15s ease;
+  }
+  .navbtn:hover{color:var(--ink);background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.25);}
+  .navbtn.top{color:var(--accent);border-color:rgba(255,212,59,.28);}
+
+  /* ---------- per-claim teaching text ---------- */
+  .primer{
+    margin-top:16px;
+    padding:14px 16px;
+    border-radius:10px;
+    background:rgba(255,255,255,.03);
+    border:1px solid var(--panel-border);
+    font-size:13px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:800px;
+  }
+  .primer b{color:var(--ink);}
+  .watchlist{
+    margin:16px 0 0;
+    padding:0;
+    list-style:none;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    font-size:13px;
+    color:var(--muted);
+    max-width:800px;
+  }
+  .watchlist li{padding-left:20px;position:relative;}
+  .watchlist li::before{content:"→";position:absolute;left:0;color:var(--accent);}
+  .watchlist b{color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="wrap" id="top">
+
+  <div class="apphead">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <div>
+        <div class="brand-title">Interactive Learning for Deep Learning Concepts</div>
+        <div class="brand-sub">Session 1 · Four claims, trained live in your browser — no server, no ML library</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Intro · introduction and module index                         -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-home">
+    <header>
+      <span class="tag">SESSION 1 · INTERACTIVE PROOFS</span>
+      <h1>Four claims about neural networks — proven, not asserted.</h1>
+      <p class="claim">
+        Everything on this page is a live experiment, not a pre-baked chart or a screenshot from
+        somewhere else. Every module below trains a real model — logistic regression, a small MLP,
+        a tiny embedding table — right there in your browser using plain JavaScript, with no
+        backend and no ML library involved. You watch the numbers move and the decision boundary
+        bend in real time, then read the proof panel underneath that quantifies what just happened.
+      </p>
+    </header>
+
+    <div class="primer">
+      <b>How to use this app</b> — click a card below to jump straight to a module, or just scroll
+      down: all four appear in sequence on this page. Each module trains automatically the first
+      time it scrolls into view; click "Regenerate &amp; train" at any point to reroll the random
+      data and watch a fresh run happen from scratch. Every module follows the same structure: a
+      plain-English claim, a live experiment you can watch unfold, and a proof panel that turns the
+      visual into a number.
+    </div>
+
+    <div class="cards">
+      <a class="card" href="#page-s1-1">
+        <span class="card-tag" style="color:#ff6b6b">S1-1</span>
+        <h3>Activations exist for a reason</h3>
+        <p>A linear model can only ever draw a straight line. One ReLU hidden layer lets the same
+        optimizer wrap a boundary around two interleaved rings.</p>
+        <span class="card-cta">Jump to module ↓</span>
+      </a>
+      <a class="card" href="#page-s1-2">
+        <span class="card-tag" style="color:#ffa94d">S1-2</span>
+        <h3>Depth without nonlinearity is a lie</h3>
+        <p>Five stacked linear layers collapse — algebraically and numerically — into a single
+        matrix. Depth only starts to matter once ReLUs sit between the layers.</p>
+        <span class="card-cta">Jump to module ↓</span>
+      </a>
+      <a class="card" href="#page-s1-3">
+        <span class="card-tag" style="color:#c084fc">S1-3</span>
+        <h3>Embeddings learn similarity from nothing but next-token</h3>
+        <p>Train an embedding table on next-token prediction only — no category labels anywhere —
+        and same-category words still cluster together in space.</p>
+        <span class="card-cta">Jump to module ↓</span>
+      </a>
+      <a class="card" href="#page-s1-4">
+        <span class="card-tag" style="color:#4dabf7">S1-4</span>
+        <h3>Memorization vs generalization</h3>
+        <p>An over-parameterized network memorizes 20 noisy points perfectly and generalizes badly.
+        Grow the dataset to 2000 and the train/test gap nearly disappears.</p>
+        <span class="card-cta">Jump to module ↓</span>
+      </a>
+    </div>
+
+    <div class="verdict show" style="margin-top:26px;">
+      <b>Why this matters:</b> nonlinearity, depth, distributional similarity, and data scale are
+      the load-bearing walls of every modern neural network, from a two-layer classifier to a
+      large language model. Nothing on this page is asserted — every number and every curve was
+      computed by gradient descent that ran the moment you scrolled to it.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- PAGE 1 — S1-1 · Activations exist for a reason                -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-s1-1">
+    <header>
+      <span class="tag">S1-1 · ACTIVATIONS EXIST FOR A REASON</span>
+      <h1>Same data. Same optimizer. One activation function.</h1>
+      <p class="claim">
+        A model with no nonlinearity can only draw a <b>straight decision boundary</b> — so it
+        can't separate two interleaved rings. Add a single <b>ReLU hidden layer</b> and it can wrap
+        the boundary around the ring. Below: ~300 noisy points (inner ring = class 0, outer ring =
+        class 1, not linearly separable), trained live in your browser, with the actual boundary
+        curve traced on top of each panel as training progresses. Only the architecture changes
+        between the two panels — everything else is identical.
+      </p>
+    </header>
+
+    <div class="primer">
+      <b>Background:</b> a neural network layer is really just z = Wx + b — a weighted sum, which
+      is linear algebra. Feed that straight into a sigmoid and you get logistic regression: a
+      classifier whose only trick is a straight decision line. An <b>activation function</b> like
+      ReLU is a small nonlinear kink inserted after that sum — it's the one thing that lets a
+      network bend space instead of just slicing it.
+    </div>
+    <ul class="watchlist">
+      <li>The <b>equation</b> printed under panel (a) — the literal straight line the model is
+      restricted to, computed directly from its weights.</li>
+      <li>How panel (b)'s boundary starts almost flat, then progressively folds — each ReLU unit
+      contributes one straight-line kink.</li>
+      <li>Final accuracy: panel (a) stuck near chance, panel (b) near-perfect.</li>
+    </ul>
+
+    <div class="controls">
+      <button id="runBtn">Regenerate rings &amp; train</button>
+      <button id="resetBtn" class="btn-secondary">Reset</button>
+      <span class="status" id="statusEl"><span class="dot"></span><span id="statusText">idle</span></span>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2><span class="swatch" style="background:#ff6b6b"></span>(a) Linear layer + sigmoid</h2>
+        <p class="sub">z = w&middot;x + b &nbsp;→&nbsp; sigmoid(z) &nbsp;— no nonlinearity, boundary must be a straight line</p>
+        <canvas id="cvLinear" width="440" height="440"></canvas>
+        <div class="metrics">
+          <div>
+            <div class="acc-label">Accuracy</div>
+            <div class="acc-val" id="accLinear">—</div>
+          </div>
+          <div class="epoch" id="epochLinear"></div>
+        </div>
+        <div class="proof">
+          <span class="eq" id="eqLinear">boundary: —</span>
+          This is the <i>entire</i> family of shapes z = w&middot;x + b can ever produce: degree&nbsp;1
+          in x and y, zero curvature terms (no x&sup2;, y&sup2;, xy). Training only rotates and
+          shifts this one line — it can never bend, no matter how long you train it.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="swatch" style="background:#4dabf7"></span>(b) One ReLU hidden layer</h2>
+        <p class="sub">h = ReLU(W&#8321;x + b&#8321;) &nbsp;→&nbsp; sigmoid(w&#8322;&middot;h + b&#8322;) — 16 hidden units</p>
+        <canvas id="cvRelu" width="440" height="440"></canvas>
+        <div class="metrics">
+          <div>
+            <div class="acc-label">Accuracy</div>
+            <div class="acc-val" id="accRelu">—</div>
+          </div>
+          <div class="epoch" id="epochRelu"></div>
+        </div>
+        <div class="proof relu">
+          <span class="eq" id="eqRelu">16 ReLU kinks, 0 bent so far</span>
+          <span id="reluNote">Each hidden unit contributes one straight fold. Watch the boundary
+          below start near-flat, then progressively fold at each kink until 16 short straight edges
+          approximate a closed loop around the inner ring.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--class0)"></i> class 0 — inner ring</span>
+      <span><i style="background:var(--class1)"></i> class 1 — outer ring</span>
+      <span><i class="ln" style="background:var(--line)"></i> traced boundary (p = 0.5)</span>
+    </div>
+
+    <div class="verdict" id="verdict"></div>
+
+    <div class="section-nav">
+      <div class="nav-right">
+        <a class="navbtn top" href="#top">↑ Top</a>
+        <a class="navbtn next" href="#page-s1-2">S1-2 →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- PAGE 2 — S1-2 · Depth without nonlinearity is a lie           -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-s1-2">
+    <header>
+      <span class="tag">S1-2 · DEPTH WITHOUT NONLINEARITY IS A LIE</span>
+      <h1>Five linear layers. One effective layer.</h1>
+      <p class="claim">
+        Stacking linear layers with nothing in between them collapses algebraically to a
+        <b>single linear map</b> — W&#8325;(W&#8324;(W&#8323;(W&#8322;(W&#8321;x+b&#8321;)+b&#8322;)+b&#8323;)+b&#8324;)+b&#8325; is still just
+        <b>W&middot;x + b</b>. So a 5-layer linear network should be no stronger than a 1-layer one, and
+        both should fail the ring task identically. Stack the exact same five layer sizes but put a
+        <b>ReLU</b> between each of them, and suddenly the ring task is solvable. Same data, same
+        depth, only the activations differ.
+      </p>
+    </header>
+
+    <div class="primer">
+      <b>Background:</b> "depth" is supposed to mean more expressive power — but only if something
+      nonlinear happens between the layers. Multiply a chain of plain matrices together with no
+      activation in between and you always get back a single matrix, no matter how many you chain.
+      This module doesn't just claim that algebraically — it multiplies the five trained matrices
+      together live, in your browser, and shows you the product.
+    </div>
+    <ul class="watchlist">
+      <li>Panels (a) and (b) should converge to the <b>same line equation</b> — five layers buys
+      nothing over one when there's no nonlinearity between them.</li>
+      <li>The matrix-multiplication box at the bottom: the gap between the 5-layer network's real
+      output and its collapsed single-matrix equivalent should be ~1e-15 — floating-point noise,
+      not approximation.</li>
+      <li>Panel (c) is the identical size to (b). The only difference is four ReLUs — and it's the
+      only one of the three that escapes the line.</li>
+    </ul>
+
+    <div class="controls">
+      <button id="runBtn2">Regenerate rings &amp; train</button>
+      <button id="resetBtn2" class="btn-secondary">Reset</button>
+      <span class="status" id="statusEl2"><span class="dot"></span><span id="statusText2">idle</span></span>
+    </div>
+
+    <div class="grid3">
+      <div class="panel">
+        <h2><span class="swatch" style="background:#ff6b6b"></span>(a) 1 linear layer</h2>
+        <p class="sub">z = W&#8321;x + b&#8321; &nbsp;→&nbsp; sigmoid(z) &nbsp;— 1 weight matrix, no activation</p>
+        <canvas id="cvLin1" width="380" height="380"></canvas>
+        <div class="metrics">
+          <div>
+            <div class="acc-label">Accuracy</div>
+            <div class="acc-val" id="accLin1">—</div>
+          </div>
+          <div class="epoch" id="epochLin1"></div>
+        </div>
+        <div class="proof">
+          <span class="eq" id="eqLin1">boundary: —</span>
+          The baseline: whatever straight line ordinary logistic regression finds.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="swatch" style="background:#ffa94d"></span>(b) 5 linear layers</h2>
+        <p class="sub">z = W&#8325;W&#8324;W&#8323;W&#8322;W&#8321;x + (bias terms) &nbsp;→&nbsp; sigmoid(z) &nbsp;— 5 weight matrices, no activation</p>
+        <canvas id="cvLin5" width="380" height="380"></canvas>
+        <div class="metrics">
+          <div>
+            <div class="acc-label">Accuracy</div>
+            <div class="acc-val" id="accLin5">—</div>
+          </div>
+          <div class="epoch" id="epochLin5"></div>
+        </div>
+        <div class="proof purp">
+          <span class="eq" id="eqLin5">boundary: —</span>
+          5&times; the weight matrices, 4&times; the hidden width — still algebraically one line.
+          <span class="cmp" id="cmpLin5">comparing to (a)…</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="swatch" style="background:#4dabf7"></span>(c) 5 layers + ReLU</h2>
+        <p class="sub">4 hidden layers of ReLU(W&#8342;x+b&#8342;), then a linear output &nbsp;→&nbsp; sigmoid — same 5 matrices, now with activations</p>
+        <canvas id="cvRelu5" width="380" height="380"></canvas>
+        <div class="metrics">
+          <div>
+            <div class="acc-label">Accuracy</div>
+            <div class="acc-val" id="accRelu5">—</div>
+          </div>
+          <div class="epoch" id="epochRelu5"></div>
+        </div>
+        <div class="proof relu">
+          <span class="eq" id="eqRelu5">warming up…</span>
+          Identical layer sizes to (b). The only difference is four ReLUs — and that's enough to
+          wrap the ring.
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--class0)"></i> class 0 — inner ring</span>
+      <span><i style="background:var(--class1)"></i> class 1 — outer ring</span>
+      <span><i class="ln" style="background:var(--line)"></i> traced boundary (p = 0.5)</span>
+    </div>
+
+    <div class="matrixproof">
+      <h3><span class="swatch"></span>Bonus proof: multiply the five weight matrices together</h3>
+      <p class="sub">
+        Take panel (b)'s trained weights — W&#8321;(8&times;2), W&#8322;(8&times;8), W&#8323;(8&times;8), W&#8324;(8&times;8), W&#8325;(1&times;8) —
+        and multiply them in composition order, <b>no training involved, pure numpy-style matmul</b>.
+        If depth-without-nonlinearity really is just one layer in disguise, the product must equal a single 1&times;2 matrix
+        that reproduces panel (b)'s output exactly.
+      </p>
+      <pre id="matrixProofBody">Train panel (b) to see the collapsed matrix here…</pre>
+    </div>
+
+    <div class="verdict" id="verdict2"></div>
+
+    <div class="section-nav">
+      <a class="navbtn prev" href="#page-s1-1">← S1-1</a>
+      <div class="nav-right">
+        <a class="navbtn top" href="#top">↑ Top</a>
+        <a class="navbtn next" href="#page-s1-3">S1-3 →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- PAGE 3 — S1-3 · Embeddings learn similarity from nothing but  -->
+  <!-- next-token                                                    -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-s1-3">
+    <header>
+      <span class="tag">S1-3 · EMBEDDINGS LEARN SIMILARITY FROM NOTHING BUT NEXT-TOKEN</span>
+      <h1>Predict the next word. Get free geometry.</h1>
+      <p class="claim">
+        A tiny synthetic grammar with three word categories — <b>animals</b> (cat, dog, cow),
+        <b>fruits</b> (apple, mango), <b>verbs</b> (eat, chase, see) — generates sentences like
+        <i>"cat chase dog"</i> and <i>"cow eat apple"</i>. Same-category words are interchangeable
+        in the grammar, so they share next-token statistics. An embedding table trained on nothing
+        but "predict the next token" — no labels, no similarity signal, no category ever supplied
+        — is watched below as it self-organizes: same-category tokens get pulled toward the same
+        region of embedding space purely as a side-effect of minimizing next-token loss.
+      </p>
+    </header>
+
+    <div class="primer">
+      <b>Background:</b> an embedding is a lookup table — each token gets a list of numbers,
+      initialized randomly, and nothing in that setup knows what a "category" is. The only
+      training signal is "predict the next token." If two tokens tend to be followed by the same
+      things, the optimizer finds it cheaper to give them similar vectors, because similar vectors
+      produce similar predictions. That distributional pressure is the entire mechanism behind word
+      embeddings, from word2vec to the token embeddings inside a modern LLM.
+    </div>
+    <ul class="watchlist">
+      <li>Dots colored by category — color was <b>never</b> part of training, it's painted on
+      afterward just so you can see the clusters.</li>
+      <li>The nearest-neighbor list: every arrow should point to a same-colored token.</li>
+      <li>The sample sentences at the bottom: flat, unlabeled text — that is the entirety of what
+      the model ever saw.</li>
+    </ul>
+
+    <div class="controls">
+      <button id="runBtn3">Regenerate grammar &amp; train</button>
+      <button id="resetBtn3" class="btn-secondary">Reset</button>
+      <span class="status" id="statusEl3"><span class="dot"></span><span id="statusText3">idle</span></span>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2><span class="swatch" style="background:#c084fc"></span>Learned embeddings, projected to 2D</h2>
+        <p class="sub">4-dimensional embedding table, live PCA-projected — categories were never given to the model</p>
+        <canvas id="cvEmbed" width="440" height="440"></canvas>
+        <div class="metrics">
+          <div>
+            <div class="acc-label">Cross-entropy loss</div>
+            <div class="acc-val" id="lossEmbed">—</div>
+          </div>
+          <div class="epoch">
+            <div id="epochEmbed"></div>
+            <div id="perplexEmbed"></div>
+          </div>
+        </div>
+        <div class="legend" style="margin-top:12px;">
+          <span><i style="background:#ff6b6b"></i> animals</span>
+          <span><i style="background:#4dabf7"></i> fruits</span>
+          <span><i style="background:#c084fc"></i> verbs</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="swatch" style="background:#51cf66"></span>Nearest-neighbor proof</h2>
+        <p class="sub">nearest neighbor computed in the full 4-D embedding space, not the 2D picture</p>
+        <ul class="nnlist" id="nnList"></ul>
+        <div class="nntally" id="nnTally">training…</div>
+      </div>
+    </div>
+
+    <div class="grammarbox">
+      <h3>The toy grammar — this is <i>all</i> the model ever sees (flat token sequences, no labels, no categories)</h3>
+      <div class="vocab">
+        <span class="pill"><i style="background:#ff6b6b"></i>cat</span>
+        <span class="pill"><i style="background:#ff6b6b"></i>dog</span>
+        <span class="pill"><i style="background:#ff6b6b"></i>cow</span>
+        <span class="pill"><i style="background:#4dabf7"></i>apple</span>
+        <span class="pill"><i style="background:#4dabf7"></i>mango</span>
+        <span class="pill"><i style="background:#c084fc"></i>eat</span>
+        <span class="pill"><i style="background:#c084fc"></i>chase</span>
+        <span class="pill"><i style="background:#c084fc"></i>see</span>
+      </div>
+      <p class="sub" style="margin:0 0 8px;">template: animal + verb + (animal or fruit), concatenated with no separators — six example sentences from this run:</p>
+      <div class="samples" id="sampleSentences">—</div>
+    </div>
+
+    <div class="verdict" id="verdict3"></div>
+
+    <div class="section-nav">
+      <a class="navbtn prev" href="#page-s1-2">← S1-2</a>
+      <div class="nav-right">
+        <a class="navbtn top" href="#top">↑ Top</a>
+        <a class="navbtn next" href="#page-s1-4">S1-4 →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- PAGE 4 — S1-4 · Memorization vs generalization, and data      -->
+  <!-- closes the gap                                                -->
+  <!-- ============================================================ -->
+  <section class="page" id="page-s1-4">
+    <header>
+      <span class="tag">S1-4 · MEMORIZATION VS GENERALIZATION, AND DATA CLOSES THE GAP</span>
+      <h1>Same network. Same optimizer. Only the dataset size changes.</h1>
+      <p class="claim">
+        A high-capacity network can drive <b>train loss to ~0</b> on a tiny dataset by memorizing
+        every point — including the mislabeled ones. That memorized noise doesn't generalize, so
+        <b>test accuracy stays low</b>: a huge train/test gap. Below, the exact same
+        over-parameterized network is trained on <b>20</b>, <b>200</b>, and <b>2000</b> points
+        drawn from the same noisy, wavy-boundary classification task (~14% label noise, held-out
+        test set shared across all three runs). Watch the decision boundary go from a contorted
+        shape that traps every training point to a smooth curve that ignores individual noise —
+        and watch the train/test gap shrink as the dataset grows.
+      </p>
+    </header>
+
+    <div class="primer">
+      <b>Background:</b> a model with more parameters than training examples has enough freedom to
+      just memorize the answer key — including any mistakes in it. That's overfitting: the loss
+      looks great on training data, but the model hasn't learned the underlying pattern, it's
+      stored a lookup table in disguise. The usual fix isn't a smarter model, it's more data — with
+      enough examples, pure memorization stops being possible and the model is forced to find the
+      real signal instead.
+    </div>
+    <ul class="watchlist">
+      <li>Panel N=20's boundary <b>contorting</b> around individual points, including the
+      mislabeled ones.</li>
+      <li>Train accuracy near 100% at N=20 while test accuracy stays mediocre — that gap is
+      overfitting, quantified.</li>
+      <li>By N=2000, train and test accuracy converge close to the noise ceiling — the gap chart at
+      the bottom makes the trend explicit.</li>
+    </ul>
+
+    <div class="controls">
+      <button id="runBtn4">Regenerate data &amp; train</button>
+      <button id="resetBtn4" class="btn-secondary">Reset</button>
+      <span class="status" id="statusEl4"><span class="dot"></span><span id="statusText4">idle</span></span>
+    </div>
+
+    <div class="grid3">
+      <div class="panel">
+        <h2><span class="swatch" style="background:#ff6b6b"></span>N = 20</h2>
+        <p class="sub" id="capN20">showing all 20 training points</p>
+        <canvas id="cvN20" width="380" height="380"></canvas>
+        <div class="metrics">
+          <div><div class="acc-label">Train acc</div><div class="acc-val" id="trainAccN20">—</div></div>
+          <div><div class="acc-label">Test acc</div><div class="acc-val" id="testAccN20">—</div></div>
+        </div>
+        <div class="epoch" id="epochN20"></div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="swatch" style="background:#ffa94d"></span>N = 200</h2>
+        <p class="sub" id="capN200">showing all 200 training points</p>
+        <canvas id="cvN200" width="380" height="380"></canvas>
+        <div class="metrics">
+          <div><div class="acc-label">Train acc</div><div class="acc-val" id="trainAccN200">—</div></div>
+          <div><div class="acc-label">Test acc</div><div class="acc-val" id="testAccN200">—</div></div>
+        </div>
+        <div class="epoch" id="epochN200"></div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="swatch" style="background:#4dabf7"></span>N = 2000</h2>
+        <p class="sub" id="capN2000">showing 400 of 2000 training points</p>
+        <canvas id="cvN2000" width="380" height="380"></canvas>
+        <div class="metrics">
+          <div><div class="acc-label">Train acc</div><div class="acc-val" id="trainAccN2000">—</div></div>
+          <div><div class="acc-label">Test acc</div><div class="acc-val" id="testAccN2000">—</div></div>
+        </div>
+        <div class="epoch" id="epochN2000"></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--class0)"></i> class 0</span>
+      <span><i style="background:var(--class1)"></i> class 1</span>
+      <span><i class="ln" style="background:var(--line)"></i> traced boundary (p = 0.5)</span>
+    </div>
+
+    <div class="matrixproof">
+      <h3><span class="swatch" style="background:#51cf66"></span>Generalization gap vs. dataset size</h3>
+      <p class="sub">same architecture, same optimizer, same noise rate — only N changes. Dashed line = noise ceiling (best possible test accuracy).</p>
+      <canvas id="cvGap" width="900" height="320" style="width:100%;height:auto;aspect-ratio:2.6/1;border-radius:10px;background:#0d1220;display:block;"></canvas>
+    </div>
+
+    <div class="verdict" id="verdict4"></div>
+
+    <div class="section-nav">
+      <a class="navbtn prev" href="#page-s1-3">← S1-3</a>
+      <div class="nav-right">
+        <a class="navbtn top" href="#top">↑ Top</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ================================================================
+// SHARED — used by every claim on this page. Do not fork per-claim.
+// ================================================================
+
+// ---------- seeded RNG ----------
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gaussian(rng){
+  const u = Math.max(rng(), 1e-9), v = rng();
+  return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v);
+}
+
+// ---------- data ----------
+const DOMAIN = 4.2; // data coords span [-DOMAIN, DOMAIN]
+function genRingData(seed){
+  const rng = mulberry32(seed);
+  const pts = [];
+  const nPer = 150;
+  for(let i=0;i<nPer;i++){
+    const a = rng()*2*Math.PI;
+    const r = 1.0 + gaussian(rng)*0.28;
+    pts.push({x:r*Math.cos(a), y:r*Math.sin(a), label:0});
+  }
+  for(let i=0;i<nPer;i++){
+    const a = rng()*2*Math.PI;
+    const r = 2.6 + gaussian(rng)*0.28;
+    pts.push({x:r*Math.cos(a), y:r*Math.sin(a), label:1});
+  }
+  // shuffle
+  for(let i=pts.length-1;i>0;i--){
+    const j = Math.floor(rng()*(i+1));
+    [pts[i],pts[j]] = [pts[j],pts[i]];
+  }
+  return pts;
+}
+
+function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+
+function accuracy(data, forward){
+  let correct = 0;
+  for(const p of data){
+    const pred = forward(p.x, p.y);
+    if((pred >= 0.5 ? 1 : 0) === p.label) correct++;
+  }
+  return correct/data.length;
+}
+
+// ---------- shared rendering ----------
+const GRID = 100;
+function computeGrid(forward){
+  const vals = [];
+  for(let gy=0; gy<GRID; gy++){
+    const row = new Float32Array(GRID);
+    const y = DOMAIN - (gy/(GRID-1))*2*DOMAIN;
+    for(let gx=0; gx<GRID; gx++){
+      const x = (gx/(GRID-1))*2*DOMAIN - DOMAIN;
+      row[gx] = forward(x,y);
+    }
+    vals.push(row);
+  }
+  return vals;
+}
+function gridXY(gx,gy){
+  const x = (gx/(GRID-1))*2*DOMAIN - DOMAIN;
+  const y = DOMAIN - (gy/(GRID-1))*2*DOMAIN;
+  return [x,y];
+}
+
+function drawPanel(canvas, data, grid){
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const toPx = (x,y) => [ (x+DOMAIN)/(2*DOMAIN)*W, (DOMAIN-y)/(2*DOMAIN)*H ];
+
+  // background field: steepened contrast so the transition band is crisp,
+  // regardless of how large the raw weights are.
+  const off = document.createElement('canvas');
+  off.width = GRID; off.height = GRID;
+  const octx = off.getContext('2d');
+  const img = octx.createImageData(GRID, GRID);
+  for(let gy=0; gy<GRID; gy++){
+    for(let gx=0; gx<GRID; gx++){
+      const p = grid[gy][gx];
+      const s = 1/(1+Math.exp(-14*(p-0.5))); // sharpen for display only
+      const r = Math.round(255*(1-s)*0.5 + 18);
+      const g = Math.round(26 + 16*Math.min(s,1-s));
+      const b = Math.round(255*s*0.55 + 18);
+      const idx = (gy*GRID+gx)*4;
+      img.data[idx] = r; img.data[idx+1] = g; img.data[idx+2] = b; img.data[idx+3] = 255;
+    }
+  }
+  octx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(off, 0, 0, W, H);
+
+  // traced decision boundary (p = 0.5), extracted directly from the grid via
+  // linear interpolation between neighboring cells — this is the actual
+  // learned boundary, not an idealized shape.
+  ctx.save();
+  ctx.fillStyle = '#ffe66d';
+  ctx.shadowColor = 'rgba(255,230,109,.9)';
+  ctx.shadowBlur = 4;
+  const dotR = 1.6;
+  for(let gy=0; gy<GRID; gy++){
+    for(let gx=0; gx<GRID; gx++){
+      const p0 = grid[gy][gx];
+      if(gx < GRID-1){
+        const p1 = grid[gy][gx+1];
+        if((p0-0.5)*(p1-0.5) < 0){
+          const t = (0.5-p0)/(p1-p0);
+          const [x0,y0] = gridXY(gx,gy);
+          const [x1] = gridXY(gx+1,gy);
+          const [px,py] = toPx(x0+t*(x1-x0), y0);
+          ctx.beginPath(); ctx.arc(px,py,dotR,0,2*Math.PI); ctx.fill();
+        }
+      }
+      if(gy < GRID-1){
+        const p1 = grid[gy+1][gx];
+        if((p0-0.5)*(p1-0.5) < 0){
+          const t = (0.5-p0)/(p1-p0);
+          const [x0,y0] = gridXY(gx,gy);
+          const [,y1] = gridXY(gx,gy+1);
+          const [px,py] = toPx(x0, y0+t*(y1-y0));
+          ctx.beginPath(); ctx.arc(px,py,dotR,0,2*Math.PI); ctx.fill();
+        }
+      }
+    }
+  }
+  ctx.restore();
+
+  // points
+  for(const p of data){
+    const [px,py] = toPx(p.x,p.y);
+    ctx.beginPath();
+    ctx.arc(px,py,3.6,0,2*Math.PI);
+    ctx.fillStyle = p.label===0 ? '#ff6b6b' : '#4dabf7';
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.lineWidth = 1;
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+function fmtPct(a){ return (a*100).toFixed(1) + '%'; }
+function fmtSigned(v){ return (v>=0?'+':'') + v.toFixed(2); }
+
+// ---------- single page, sequential sections: each module trains itself the ----------
+// first time it scrolls into view. The actual model/training code below is
+// untouched — this only decides *when* each run*Demo() gets called.
+(function(){
+  const triggers = [
+    { id:'page-s1-1', flag:'__claim1Started', run: () => runDemo() },
+    { id:'page-s1-2', flag:'__claim2Started', run: () => runDepthDemo() },
+    { id:'page-s1-3', flag:'__claim3Started', run: () => runEmbedDemo() },
+    { id:'page-s1-4', flag:'__claim4Started', run: () => runOverfitDemo() },
+  ];
+  const byId = Object.fromEntries(triggers.map(t=>[t.id,t]));
+
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(!entry.isIntersecting) return;
+      const t = byId[entry.target.id];
+      if(t && !window[t.flag]){
+        window[t.flag] = true;
+        t.run();
+      }
+    });
+  }, { threshold: 0.15 });
+
+  triggers.forEach(t=>{
+    const el = document.getElementById(t.id);
+    if(el) io.observe(el);
+  });
+})();
+
+// ================================================================
+// S1-1 — Activations exist for a reason (unchanged from original)
+// ================================================================
+function makeLinearModel(rng){
+  return { w1: gaussian(rng)*0.01, w2: gaussian(rng)*0.01, b: 0 };
+}
+function linearForward(m, x, y){ return sigmoid(m.w1*x + m.w2*y + m.b); }
+function linearTrainStep(m, data, lr){
+  let dw1=0, dw2=0, db=0;
+  const n = data.length;
+  for(const p of data){
+    const pred = linearForward(m, p.x, p.y);
+    const dz = pred - p.label;
+    dw1 += dz*p.x; dw2 += dz*p.y; db += dz;
+  }
+  m.w1 -= lr*dw1/n; m.w2 -= lr*dw2/n; m.b -= lr*db/n;
+}
+
+const HIDDEN = 16;
+// Deliberately small initial scale: the network starts almost flat (near-linear),
+// so the first frames visibly show the boundary folding into a ring, kink by kink.
+function makeReluModel(rng){
+  const scale1 = Math.sqrt(2/2) * 0.32;
+  const scale2 = Math.sqrt(2/HIDDEN) * 0.32;
+  const W1 = [], b1 = [];
+  for(let h=0; h<HIDDEN; h++){
+    W1.push([gaussian(rng)*scale1, gaussian(rng)*scale1]);
+    b1.push(0);
+  }
+  const W2 = [], b2 = 0;
+  for(let h=0; h<HIDDEN; h++) W2.push(gaussian(rng)*scale2);
+  return {W1,b1,W2,b2};
+}
+function reluForward(m, x, y){
+  const z1 = new Array(HIDDEN), a1 = new Array(HIDDEN);
+  for(let h=0; h<HIDDEN; h++){
+    z1[h] = m.W1[h][0]*x + m.W1[h][1]*y + m.b1[h];
+    a1[h] = z1[h] > 0 ? z1[h] : 0;
+  }
+  let z2 = m.b2;
+  for(let h=0; h<HIDDEN; h++) z2 += m.W2[h]*a1[h];
+  return { p: sigmoid(z2), z1, a1 };
+}
+function reluTrainStep(m, data, lr){
+  const dW1 = Array.from({length:HIDDEN}, ()=>[0,0]);
+  const db1 = new Array(HIDDEN).fill(0);
+  const dW2 = new Array(HIDDEN).fill(0);
+  let db2 = 0;
+  const n = data.length;
+  for(const p of data){
+    const {p: pred, z1, a1} = reluForward(m, p.x, p.y);
+    const dz2 = pred - p.label;
+    for(let h=0; h<HIDDEN; h++) dW2[h] += dz2*a1[h];
+    db2 += dz2;
+    for(let h=0; h<HIDDEN; h++){
+      const da1 = dz2*m.W2[h];
+      const dz1 = z1[h] > 0 ? da1 : 0;
+      dW1[h][0] += dz1*p.x;
+      dW1[h][1] += dz1*p.y;
+      db1[h] += dz1;
+    }
+  }
+  for(let h=0; h<HIDDEN; h++){
+    m.W1[h][0] -= lr*dW1[h][0]/n;
+    m.W1[h][1] -= lr*dW1[h][1]/n;
+    m.b1[h] -= lr*db1[h]/n;
+    m.W2[h] -= lr*dW2[h]/n;
+  }
+  m.b2 -= lr*db2/n;
+}
+function countActiveKinks(model){
+  // a hidden unit "matters" for the boundary once its output weight and input
+  // weights have grown enough to meaningfully bend the surface.
+  let n = 0;
+  for(let h=0; h<HIDDEN; h++){
+    const mag = Math.hypot(model.W1[h][0], model.W1[h][1]) * Math.abs(model.W2[h]);
+    if(mag > 0.05) n++;
+  }
+  return n;
+}
+
+const cvLinear = document.getElementById('cvLinear');
+const cvRelu = document.getElementById('cvRelu');
+const accLinearEl = document.getElementById('accLinear');
+const accReluEl = document.getElementById('accRelu');
+const epochLinearEl = document.getElementById('epochLinear');
+const epochReluEl = document.getElementById('epochRelu');
+const eqLinearEl = document.getElementById('eqLinear');
+const eqReluEl = document.getElementById('eqRelu');
+const statusEl = document.getElementById('statusEl');
+const statusText = document.getElementById('statusText');
+const verdictEl = document.getElementById('verdict');
+const runBtn = document.getElementById('runBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+let seed = 1234;
+const EPOCHS = 2400;
+const CHUNK = 8;           // training epochs per animation frame
+const FRAME_DELAY_MS = 55; // fixed pacing so the fold-by-fold wrap is visible
+
+let runGen = 0; // bumped by Reset to cancel any in-flight animation loop
+
+async function runDemo(){
+  const myGen = ++runGen;
+  runBtn.disabled = true;
+  verdictEl.classList.remove('show');
+  statusEl.className = 'status training';
+  statusText.textContent = 'training…';
+
+  seed = (Date.now() % 100000) + 1;
+  const rngInit = mulberry32(seed);
+  const data = genRingData(seed);
+
+  const lin = makeLinearModel(rngInit);
+  const rel = makeReluModel(rngInit);
+
+  const linForward = (x,y) => linearForward(lin, x, y);
+  const relForward = (x,y) => reluForward(rel, x, y).p;
+
+  const renderFrame = (e) => {
+    const gridLin = computeGrid(linForward);
+    const gridRel = computeGrid(relForward);
+    drawPanel(cvLinear, data, gridLin);
+    drawPanel(cvRelu, data, gridRel);
+
+    const aLin = accuracy(data, linForward);
+    const aRel = accuracy(data, relForward);
+    accLinearEl.textContent = fmtPct(aLin);
+    accReluEl.textContent = fmtPct(aRel);
+    accLinearEl.className = 'acc-val ' + (aLin > 0.9 ? 'high' : aLin < 0.7 ? 'low' : '');
+    accReluEl.className = 'acc-val ' + (aRel > 0.9 ? 'high' : aRel < 0.7 ? 'low' : '');
+    epochLinearEl.textContent = `epoch ${e}/${EPOCHS}`;
+    epochReluEl.textContent = `epoch ${e}/${EPOCHS}`;
+
+    // explicit algebraic proof for the linear model: solve w1*x + w2*y + b = 0 for y
+    if(Math.abs(lin.w2) > 1e-4){
+      const slope = -lin.w1/lin.w2, intercept = -lin.b/lin.w2;
+      eqLinearEl.textContent = `y = ${fmtSigned(slope)}·x ${fmtSigned(intercept)}  (a straight line)`;
+    } else {
+      eqLinearEl.textContent = `${lin.w1.toFixed(2)}·x ${fmtSigned(lin.b)} = 0  (a vertical line)`;
+    }
+
+    const kinks = countActiveKinks(rel);
+    eqReluEl.textContent = `${kinks}/${HIDDEN} ReLU kinks folded into the boundary so far`;
+  };
+
+  renderFrame(0);
+  await new Promise(r => setTimeout(r, FRAME_DELAY_MS));
+  if(myGen !== runGen) return;
+
+  for(let e=CHUNK; e<=EPOCHS; e+=CHUNK){
+    for(let k=0;k<CHUNK;k++){
+      linearTrainStep(lin, data, 0.5);
+      reluTrainStep(rel, data, 0.012);
+    }
+    renderFrame(e);
+    await new Promise(r => setTimeout(r, FRAME_DELAY_MS));
+    if(myGen !== runGen) return;
+  }
+
+  const aLinFinal = accuracy(data, linForward);
+  const aRelFinal = accuracy(data, relForward);
+  statusEl.className = 'status done';
+  statusText.textContent = 'done';
+  verdictEl.classList.add('show');
+  verdictEl.innerHTML = `<b>Only the activation changed.</b> Linear + sigmoid is mathematically
+    limited to a straight decision boundary, so it plateaus around
+    <b>${fmtPct(aLinFinal)}</b> on interleaved rings — barely better than a coin flip beyond the
+    lucky diameter it can align with. Adding one ReLU hidden layer lets the same optimizer fold
+    16 straight pieces into a closed loop around the ring, reaching <b>${fmtPct(aRelFinal)}</b>.
+    That gap is the whole argument for nonlinearities.`;
+
+  runBtn.disabled = false;
+}
+
+runBtn.addEventListener('click', runDemo);
+
+function resetWidget1(){
+  runGen++; // cancels any in-flight animation loop, see the `myGen` checks above
+  runBtn.disabled = false;
+  statusEl.className = 'status';
+  statusText.textContent = 'idle';
+  verdictEl.classList.remove('show');
+  verdictEl.innerHTML = '';
+  [cvLinear, cvRelu].forEach(cv => cv.getContext('2d').clearRect(0, 0, cv.width, cv.height));
+  accLinearEl.textContent = '—'; accLinearEl.className = 'acc-val';
+  accReluEl.textContent = '—'; accReluEl.className = 'acc-val';
+  epochLinearEl.textContent = '';
+  epochReluEl.textContent = '';
+  eqLinearEl.textContent = 'boundary: —';
+  eqReluEl.textContent = '16 ReLU kinks, 0 bent so far';
+}
+resetBtn.addEventListener('click', resetWidget1);
+
+// ================================================================
+// S1-2 — Depth without nonlinearity is a lie
+// ================================================================
+const ACT_ID = 'id', ACT_RELU = 'relu';
+
+// generic N-layer fully-connected stack. activations[i] applies to the
+// output of layer i (the final layer should normally stay 'id' so the
+// raw logit is passed to an external sigmoid, matching S1-1's pattern).
+function makeStackModel(rng, sizes, activations, initScale){
+  initScale = initScale === undefined ? 1 : initScale;
+  const layers = [];
+  for(let i=1;i<sizes.length;i++){
+    const fanIn = sizes[i-1], fanOut = sizes[i];
+    const isRelu = activations[i-1] === ACT_RELU;
+    const base = isRelu ? Math.sqrt(2/fanIn) : Math.sqrt(1/fanIn);
+    const scale = base * initScale;
+    const W = [];
+    for(let o=0;o<fanOut;o++){
+      const row = [];
+      for(let k=0;k<fanIn;k++) row.push(gaussian(rng)*scale);
+      W.push(row);
+    }
+    const b = new Array(fanOut).fill(0);
+    layers.push({W, b, act:activations[i-1], fanIn, fanOut});
+  }
+  return layers;
+}
+function stackForward(layers, x, y){
+  let a = [x,y];
+  const cache = [a];
+  const zs = [];
+  for(const layer of layers){
+    const z = new Array(layer.fanOut);
+    for(let o=0;o<layer.fanOut;o++){
+      let s = layer.b[o];
+      const row = layer.W[o];
+      for(let k=0;k<layer.fanIn;k++) s += row[k]*a[k];
+      z[o] = s;
+    }
+    zs.push(z);
+    const out = layer.act === ACT_RELU ? z.map(v => v>0 ? v : 0) : z.slice();
+    cache.push(out);
+    a = out;
+  }
+  return { p: sigmoid(a[0]), logit: a[0], cache, zs };
+}
+function stackTrainStep(layers, data, lr){
+  const grads = layers.map(l => ({
+    dW: l.W.map(row => row.map(()=>0)),
+    db: l.b.map(()=>0)
+  }));
+  for(const pt of data){
+    const { p, cache, zs } = stackForward(layers, pt.x, pt.y);
+    let delta = [p - pt.label];
+    for(let li=layers.length-1; li>=0; li--){
+      const layer = layers[li];
+      const aPrev = cache[li];
+      const z = zs[li];
+      const dz = new Array(layer.fanOut);
+      for(let o=0;o<layer.fanOut;o++) dz[o] = layer.act===ACT_RELU ? (z[o]>0 ? delta[o] : 0) : delta[o];
+      const g = grads[li];
+      for(let o=0;o<layer.fanOut;o++){
+        g.db[o] += dz[o];
+        const grow = g.dW[o];
+        for(let k=0;k<layer.fanIn;k++) grow[k] += dz[o]*aPrev[k];
+      }
+      if(li>0){
+        const dPrev = new Array(layer.fanIn).fill(0);
+        for(let k=0;k<layer.fanIn;k++){
+          let s = 0;
+          for(let o=0;o<layer.fanOut;o++) s += layer.W[o][k]*dz[o];
+          dPrev[k] = s;
+        }
+        delta = dPrev;
+      }
+    }
+  }
+  const n = data.length;
+  for(let li=0; li<layers.length; li++){
+    const layer = layers[li], g = grads[li];
+    for(let o=0;o<layer.fanOut;o++){
+      layer.b[o] -= lr*g.db[o]/n;
+      const wrow = layer.W[o], grow = g.dW[o];
+      for(let k=0;k<layer.fanIn;k++) wrow[k] -= lr*grow[k]/n;
+    }
+  }
+}
+
+// ---- numeric matrix-collapse proof (only valid when every activation is 'id') ----
+function matMul(A,B){
+  const m=A.length, n=A[0].length, p=B[0].length;
+  const C = Array.from({length:m}, ()=>new Array(p).fill(0));
+  for(let i=0;i<m;i++){
+    for(let k=0;k<n;k++){
+      const a = A[i][k];
+      if(a===0) continue;
+      const brow = B[k];
+      for(let j=0;j<p;j++) C[i][j] += a*brow[j];
+    }
+  }
+  return C;
+}
+function collapseLinearStack(layers){
+  let Weff = layers[layers.length-1].W;
+  for(let li=layers.length-2; li>=0; li--) Weff = matMul(Weff, layers[li].W);
+  const beff = stackForward(layers, 0, 0).logit; // a0=[0,0] isolates the bias path
+  return { Weff, beff };
+}
+function maxCollapseDiscrepancy(layers, data, Weff, beff){
+  let maxDiff = 0;
+  for(const pt of data){
+    const { logit } = stackForward(layers, pt.x, pt.y);
+    const collapsed = Weff[0][0]*pt.x + Weff[0][1]*pt.y + beff;
+    maxDiff = Math.max(maxDiff, Math.abs(logit - collapsed));
+  }
+  return maxDiff;
+}
+function lineEqFromStack(layers){
+  const { Weff, beff } = collapseLinearStack(layers);
+  const w1 = Weff[0][0], w2 = Weff[0][1];
+  if(Math.abs(w2) > 1e-4){
+    const slope = -w1/w2, intercept = -beff/w2;
+    return { text:`y = ${fmtSigned(slope)}·x ${fmtSigned(intercept)}  (a straight line)`, slope, intercept, Weff, beff };
+  }
+  return { text:`${w1.toFixed(2)}·x ${fmtSigned(beff)} = 0  (a vertical line)`, slope:null, intercept:null, Weff, beff };
+}
+
+const cvLin1 = document.getElementById('cvLin1');
+const cvLin5 = document.getElementById('cvLin5');
+const cvRelu5 = document.getElementById('cvRelu5');
+const accLin1El = document.getElementById('accLin1');
+const accLin5El = document.getElementById('accLin5');
+const accRelu5El = document.getElementById('accRelu5');
+const epochLin1El = document.getElementById('epochLin1');
+const epochLin5El = document.getElementById('epochLin5');
+const epochRelu5El = document.getElementById('epochRelu5');
+const eqLin1El = document.getElementById('eqLin1');
+const eqLin5El = document.getElementById('eqLin5');
+const eqRelu5El = document.getElementById('eqRelu5');
+const cmpLin5El = document.getElementById('cmpLin5');
+const matrixProofBody = document.getElementById('matrixProofBody');
+const statusEl2 = document.getElementById('statusEl2');
+const statusText2 = document.getElementById('statusText2');
+const verdict2 = document.getElementById('verdict2');
+const runBtn2 = document.getElementById('runBtn2');
+const resetBtn2 = document.getElementById('resetBtn2');
+
+const EPOCHS2 = 2600;
+const CHUNK2 = 8;
+const FRAME_DELAY_MS2 = 55;
+const LAYER_SIZES = [2,8,8,8,8,1]; // 5 weight matrices either way
+
+let runGen2 = 0; // bumped by Reset to cancel any in-flight animation loop
+
+async function runDepthDemo(){
+  const myGen = ++runGen2;
+  runBtn2.disabled = true;
+  verdict2.classList.remove('show');
+  statusEl2.className = 'status training';
+  statusText2.textContent = 'training…';
+
+  const seed2 = (Date.now() % 100000) + 7;
+  const rngInit = mulberry32(seed2);
+  const data2 = genRingData(seed2);
+
+  const lin1  = makeStackModel(rngInit, [2,1], [ACT_ID]);
+  const lin5  = makeStackModel(rngInit, LAYER_SIZES, [ACT_ID,ACT_ID,ACT_ID,ACT_ID,ACT_ID], 0.9);
+  const relu5 = makeStackModel(rngInit, LAYER_SIZES, [ACT_RELU,ACT_RELU,ACT_RELU,ACT_RELU,ACT_ID], 0.32);
+
+  const fwdLin1  = (x,y) => stackForward(lin1,  x, y).p;
+  const fwdLin5  = (x,y) => stackForward(lin5,  x, y).p;
+  const fwdRelu5 = (x,y) => stackForward(relu5, x, y).p;
+
+  const renderFrame = (e) => {
+    const gLin1  = computeGrid(fwdLin1);
+    const gLin5  = computeGrid(fwdLin5);
+    const gRelu5 = computeGrid(fwdRelu5);
+    drawPanel(cvLin1,  data2, gLin1);
+    drawPanel(cvLin5,  data2, gLin5);
+    drawPanel(cvRelu5, data2, gRelu5);
+
+    const aLin1  = accuracy(data2, fwdLin1);
+    const aLin5  = accuracy(data2, fwdLin5);
+    const aRelu5 = accuracy(data2, fwdRelu5);
+    accLin1El.textContent  = fmtPct(aLin1);
+    accLin5El.textContent  = fmtPct(aLin5);
+    accRelu5El.textContent = fmtPct(aRelu5);
+    accLin1El.className  = 'acc-val ' + (aLin1  > 0.9 ? 'high' : aLin1  < 0.7 ? 'low' : '');
+    accLin5El.className  = 'acc-val ' + (aLin5  > 0.9 ? 'high' : aLin5  < 0.7 ? 'low' : '');
+    accRelu5El.className = 'acc-val ' + (aRelu5 > 0.9 ? 'high' : aRelu5 < 0.7 ? 'low' : '');
+    epochLin1El.textContent  = `epoch ${e}/${EPOCHS2}`;
+    epochLin5El.textContent  = `epoch ${e}/${EPOCHS2}`;
+    epochRelu5El.textContent = `epoch ${e}/${EPOCHS2}`;
+
+    const eq1 = lineEqFromStack(lin1);
+    const eq5 = lineEqFromStack(lin5);
+    eqLin1El.textContent = eq1.text;
+    eqLin5El.textContent = eq5.text;
+    eqRelu5El.textContent = `${(aRelu5*100).toFixed(0)}% correct so far — folding a curved boundary`;
+
+    const dAcc = ((aLin5-aLin1)*100).toFixed(1);
+    if(eq1.slope!==null && eq5.slope!==null){
+      const angA = Math.atan(eq1.slope)*180/Math.PI;
+      const angB = Math.atan(eq5.slope)*180/Math.PI;
+      cmpLin5El.textContent = `vs (a): Δaccuracy ${dAcc} pts, Δslope-angle ${Math.abs(angA-angB).toFixed(1)}°`;
+    } else {
+      cmpLin5El.textContent = `vs (a): Δaccuracy ${dAcc} pts`;
+    }
+
+    const { Weff, beff } = collapseLinearStack(lin5);
+    const maxDiff = maxCollapseDiscrepancy(lin5, data2, Weff, beff);
+    matrixProofBody.innerHTML =
+`<span class="dim">W1</span>(8×2) &middot; <span class="dim">W2</span>(8×8) &middot; <span class="dim">W3</span>(8×8) &middot; <span class="dim">W4</span>(8×8) &middot; <span class="dim">W5</span>(1×8)
+  = <span class="num">W_eff</span> (1×2) = [ <span class="num">${Weff[0][0].toFixed(4)}</span>, <span class="num">${Weff[0][1].toFixed(4)}</span> ]
+  <span class="dim">b_eff</span> = <span class="num">${beff.toFixed(4)}</span>
+
+panel (b) prediction  vs.  sigmoid(W_eff·x + b_eff)
+max |Δlogit| across all ${data2.length} points: <span class="ok">${maxDiff.toExponential(2)}</span>  (floating-point noise — they are the same function)`;
+  };
+
+  renderFrame(0);
+  await new Promise(r => setTimeout(r, FRAME_DELAY_MS2));
+  if(myGen !== runGen2) return;
+
+  for(let e=CHUNK2; e<=EPOCHS2; e+=CHUNK2){
+    for(let k=0;k<CHUNK2;k++){
+      stackTrainStep(lin1,  data2, 0.5);
+      stackTrainStep(lin5,  data2, 0.5);
+      stackTrainStep(relu5, data2, 0.05);
+    }
+    renderFrame(e);
+    await new Promise(r => setTimeout(r, FRAME_DELAY_MS2));
+    if(myGen !== runGen2) return;
+  }
+
+  const aLin1F  = accuracy(data2, fwdLin1);
+  const aLin5F  = accuracy(data2, fwdLin5);
+  const aRelu5F = accuracy(data2, fwdRelu5);
+  statusEl2.className = 'status done';
+  statusText2.textContent = 'done';
+  verdict2.classList.add('show');
+  verdict2.innerHTML = `<b>Depth alone bought nothing.</b> The 1-layer model plateaus at
+    <b>${fmtPct(aLin1F)}</b> and the 5-linear-layer model — five weight matrices, four extra
+    "layers" — plateaus at <b>${fmtPct(aLin5F)}</b>, the same straight line in disguise, because
+    that's mathematically all it can ever be. Multiplying its five weight matrices together
+    produces a single 1&times;2 matrix that reproduces its output to floating-point precision — proof,
+    not assertion. Insert a ReLU after each of the same five layers and accuracy jumps to
+    <b>${fmtPct(aRelu5F)}</b>. Depth only helps once there's a nonlinearity to make it count.`;
+
+  runBtn2.disabled = false;
+}
+
+runBtn2.addEventListener('click', runDepthDemo);
+
+function resetWidget2(){
+  runGen2++; // cancels any in-flight animation loop, see the `myGen` checks above
+  runBtn2.disabled = false;
+  statusEl2.className = 'status';
+  statusText2.textContent = 'idle';
+  verdict2.classList.remove('show');
+  verdict2.innerHTML = '';
+  [cvLin1, cvLin5, cvRelu5].forEach(cv => cv.getContext('2d').clearRect(0, 0, cv.width, cv.height));
+  [accLin1El, accLin5El, accRelu5El].forEach(el => { el.textContent = '—'; el.className = 'acc-val'; });
+  epochLin1El.textContent = '';
+  epochLin5El.textContent = '';
+  epochRelu5El.textContent = '';
+  eqLin1El.textContent = 'boundary: —';
+  eqLin5El.textContent = 'boundary: —';
+  eqRelu5El.textContent = 'warming up…';
+  cmpLin5El.textContent = 'comparing to (a)…';
+  matrixProofBody.textContent = 'Train panel (b) to see the collapsed matrix here…';
+}
+resetBtn2.addEventListener('click', resetWidget2);
+
+// ================================================================
+// S1-3 — Embeddings learn similarity from nothing but next-token
+// ================================================================
+const VOCAB = ['cat','dog','cow','apple','mango','eat','chase','see'];
+const CATS = {
+  cat:'animal', dog:'animal', cow:'animal',
+  apple:'fruit', mango:'fruit',
+  eat:'verb', chase:'verb', see:'verb'
+};
+const CAT_COLOR = { animal:'#ff6b6b', fruit:'#4dabf7', verb:'#c084fc' };
+const ANIMAL_IDS = [0,1,2]; // cat, dog, cow
+const OBJ_IDS = [0,1,2,3,4]; // animals ∪ fruits — anything can be an object
+const VERB_IDS = [5,6,7];
+
+// same-category tokens are 100% interchangeable in this grammar: every
+// animal is equally likely as subject or object, every verb equally
+// likely in verb position — so same-category tokens end up with
+// identical next-token statistics without ever being told they're related.
+function genGrammarCorpus(seed, numSentences){
+  const rng = mulberry32(seed);
+  const seq = [];
+  const sentences = [];
+  for(let i=0;i<numSentences;i++){
+    const s = ANIMAL_IDS[Math.floor(rng()*ANIMAL_IDS.length)];
+    const v = VERB_IDS[Math.floor(rng()*VERB_IDS.length)];
+    const o = OBJ_IDS[Math.floor(rng()*OBJ_IDS.length)];
+    seq.push(s,v,o);
+    sentences.push([s,v,o]);
+  }
+  return { seq, sentences };
+}
+function buildBigramPairs(seq){
+  const pairs = [];
+  for(let i=0;i<seq.length-1;i++) pairs.push([seq[i], seq[i+1]]);
+  return pairs;
+}
+
+const EMB_DIM = 4;
+function makeEmbedModel(rng){
+  const V = VOCAB.length;
+  const E = [], Wout = [];
+  for(let i=0;i<V;i++){
+    const row = []; for(let d=0; d<EMB_DIM; d++) row.push(gaussian(rng)*0.35);
+    E.push(row);
+  }
+  for(let i=0;i<V;i++){
+    const row = []; for(let d=0; d<EMB_DIM; d++) row.push(gaussian(rng)*0.35);
+    Wout.push(row);
+  }
+  return { E, Wout, bout: new Array(V).fill(0) };
+}
+function softmaxVec(logits){
+  const m = Math.max(...logits);
+  const exps = logits.map(z => Math.exp(z-m));
+  const s = exps.reduce((a,b)=>a+b, 0);
+  return exps.map(e => e/s);
+}
+function embedForward(model, tokenId){
+  const x = model.E[tokenId];
+  const logits = model.Wout.map((row,j) => {
+    let s = model.bout[j];
+    for(let d=0; d<EMB_DIM; d++) s += row[d]*x[d];
+    return s;
+  });
+  return { x, probs: softmaxVec(logits) };
+}
+function embedTrainStep(model, pairs, lr){
+  const V = VOCAB.length;
+  const dE = model.E.map(row => row.map(()=>0));
+  const dWout = model.Wout.map(row => row.map(()=>0));
+  const dbout = new Array(V).fill(0);
+  for(const [cur,next] of pairs){
+    const { x, probs } = embedForward(model, cur);
+    const dlogits = probs.slice();
+    dlogits[next] -= 1;
+    const dx = new Array(EMB_DIM).fill(0);
+    for(let j=0;j<V;j++){
+      const dz = dlogits[j];
+      dbout[j] += dz;
+      const wrow = dWout[j], Wrow = model.Wout[j];
+      for(let d=0; d<EMB_DIM; d++){
+        wrow[d] += dz*x[d];
+        dx[d] += dz*Wrow[d];
+      }
+    }
+    const erow = dE[cur];
+    for(let d=0; d<EMB_DIM; d++) erow[d] += dx[d];
+  }
+  const n = pairs.length;
+  for(let i=0;i<V;i++){
+    for(let d=0; d<EMB_DIM; d++){
+      model.E[i][d] -= lr*dE[i][d]/n;
+      model.Wout[i][d] -= lr*dWout[i][d]/n;
+    }
+    model.bout[i] -= lr*dbout[i]/n;
+  }
+}
+function corpusLoss(model, pairs){
+  let total = 0;
+  for(const [cur,next] of pairs){
+    const { probs } = embedForward(model, cur);
+    total += -Math.log(Math.max(probs[next], 1e-9));
+  }
+  return total/pairs.length;
+}
+function nearestNeighborIdx(E){
+  const n = E.length;
+  const res = [];
+  for(let i=0;i<n;i++){
+    let best=-1, bestDist=Infinity;
+    for(let j=0;j<n;j++){
+      if(j===i) continue;
+      let d=0;
+      for(let k=0;k<EMB_DIM;k++){ const diff=E[i][k]-E[j][k]; d+=diff*diff; }
+      if(d<bestDist){ bestDist=d; best=j; }
+    }
+    res.push(best);
+  }
+  return res;
+}
+
+// live PCA via warm-started power iteration: v1/v2 persist in `state` across
+// frames so the 2D projection rotates smoothly instead of flipping/jittering
+// as the embeddings (and therefore their covariance) slowly shift each frame.
+function project2D(E, state){
+  const n = E.length, d = E[0].length;
+  const mean = new Array(d).fill(0);
+  for(const row of E) for(let k=0;k<d;k++) mean[k] += row[k]/n;
+  const X = E.map(row => row.map((v,k)=>v-mean[k]));
+  const C = Array.from({length:d}, ()=>new Array(d).fill(0));
+  for(const row of X) for(let i=0;i<d;i++) for(let j=0;j<d;j++) C[i][j] += row[i]*row[j]/n;
+
+  const matVec = v => {
+    const out = new Array(d).fill(0);
+    for(let i=0;i<d;i++){ let s=0; for(let j=0;j<d;j++) s+=C[i][j]*v[j]; out[i]=s; }
+    return out;
+  };
+  const norm = v => Math.sqrt(v.reduce((a,b)=>a+b*b,0));
+  const normalize = v => { const nn = norm(v)||1; return v.map(x=>x/nn); };
+  const dot = (a,b) => a.reduce((s,ai,i)=>s+ai*b[i],0);
+
+  if(!state.v1) state.v1 = normalize(Array.from({length:d}, ()=>Math.random()-0.5));
+  if(!state.v2) state.v2 = normalize(Array.from({length:d}, ()=>Math.random()-0.5));
+
+  let v1 = state.v1;
+  for(let it=0; it<25; it++) v1 = normalize(matVec(v1));
+  let v2 = state.v2;
+  for(let it=0; it<25; it++){
+    let mv = matVec(v2);
+    const proj = dot(mv, v1);
+    mv = mv.map((x,i)=>x - proj*v1[i]);
+    v2 = normalize(mv);
+  }
+  state.v1 = v1; state.v2 = v2;
+
+  return X.map(row => [dot(row, v1), dot(row, v2)]);
+}
+
+function drawEmbedScatter(canvas, coords, labels, colors){
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0d1220';
+  ctx.fillRect(0,0,W,H);
+
+  const xs = coords.map(c=>c[0]), ys = coords.map(c=>c[1]);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+  const padFrac = 0.32;
+  const spanX = Math.max(maxX-minX, 0.05), spanY = Math.max(maxY-minY, 0.05);
+  const loX = minX - spanX*padFrac, hiX = maxX + spanX*padFrac;
+  const loY = minY - spanY*padFrac, hiY = maxY + spanY*padFrac;
+  const toPx = (x,y) => [ (x-loX)/(hiX-loX)*W, H - (y-loY)/(hiY-loY)*H ];
+
+  ctx.strokeStyle = 'rgba(255,255,255,.07)';
+  ctx.lineWidth = 1;
+  const [ox,oy] = toPx(0,0);
+  ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke();
+
+  coords.forEach((c,i)=>{
+    const [px,py] = toPx(c[0], c[1]);
+    ctx.beginPath();
+    ctx.arc(px,py,9,0,2*Math.PI);
+    ctx.fillStyle = colors[i];
+    ctx.shadowColor = colors[i];
+    ctx.shadowBlur = 9;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(0,0,0,.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#e7ecf6';
+    ctx.font = '600 13px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(labels[i], px, py-16);
+  });
+}
+
+const cvEmbed = document.getElementById('cvEmbed');
+const lossEmbedEl = document.getElementById('lossEmbed');
+const epochEmbedEl = document.getElementById('epochEmbed');
+const perplexEmbedEl = document.getElementById('perplexEmbed');
+const nnListEl = document.getElementById('nnList');
+const nnTallyEl = document.getElementById('nnTally');
+const sampleSentencesEl = document.getElementById('sampleSentences');
+const statusEl3 = document.getElementById('statusEl3');
+const statusText3 = document.getElementById('statusText3');
+const verdict3 = document.getElementById('verdict3');
+const runBtn3 = document.getElementById('runBtn3');
+const resetBtn3 = document.getElementById('resetBtn3');
+
+const EPOCHS3 = 700;
+const CHUNK3 = 5;
+const FRAME_DELAY_MS3 = 60;
+
+let runGen3 = 0; // bumped by Reset to cancel any in-flight animation loop
+
+async function runEmbedDemo(){
+  const myGen = ++runGen3;
+  runBtn3.disabled = true;
+  verdict3.classList.remove('show');
+  statusEl3.className = 'status training';
+  statusText3.textContent = 'training…';
+
+  const seed3 = (Date.now() % 100000) + 13;
+  const rngInit = mulberry32(seed3);
+  const { seq, sentences } = genGrammarCorpus(seed3, 800);
+  const pairs = buildBigramPairs(seq);
+  const model = makeEmbedModel(rngInit);
+  const pcaState = {};
+
+  sampleSentencesEl.innerHTML = sentences.slice(0,6)
+    .map(([s,v,o]) => `${VOCAB[s]} ${VOCAB[v]} ${VOCAB[o]}`)
+    .join('<br>');
+
+  let lastSameCount = 0;
+  const renderFrame = (e) => {
+    const coords = project2D(model.E, pcaState);
+    const colors = VOCAB.map(tok => CAT_COLOR[CATS[tok]]);
+    drawEmbedScatter(cvEmbed, coords, VOCAB, colors);
+
+    const loss = corpusLoss(model, pairs);
+    lossEmbedEl.textContent = loss.toFixed(3);
+    epochEmbedEl.textContent = `epoch ${e}/${EPOCHS3}`;
+    perplexEmbedEl.textContent = `perplexity ${Math.exp(loss).toFixed(2)}`;
+
+    const nn = nearestNeighborIdx(model.E);
+    let sameCount = 0;
+    nnListEl.innerHTML = VOCAB.map((tok,i) => {
+      const nTok = VOCAB[nn[i]];
+      const same = CATS[tok] === CATS[nTok];
+      if(same) sameCount++;
+      return `<li class="nnrow">
+        <span class="tok"><i style="background:${CAT_COLOR[CATS[tok]]}"></i>${tok}</span>
+        <span class="arrow">→ nearest:</span>
+        <span class="tok"><i style="background:${CAT_COLOR[CATS[nTok]]}"></i>${nTok}</span>
+        <span class="mark ${same ? 'yes' : 'no'}">${same ? '✓ same category' : '✗ different'}</span>
+      </li>`;
+    }).join('');
+    nnTallyEl.innerHTML = `<b>${sameCount}/${VOCAB.length}</b> tokens have a same-category nearest neighbor`;
+    lastSameCount = sameCount;
+  };
+
+  renderFrame(0);
+  await new Promise(r => setTimeout(r, FRAME_DELAY_MS3));
+  if(myGen !== runGen3) return;
+
+  for(let e=CHUNK3; e<=EPOCHS3; e+=CHUNK3){
+    for(let k=0;k<CHUNK3;k++) embedTrainStep(model, pairs, 0.4);
+    renderFrame(e);
+    await new Promise(r => setTimeout(r, FRAME_DELAY_MS3));
+    if(myGen !== runGen3) return;
+  }
+
+  statusEl3.className = 'status done';
+  statusText3.textContent = 'done';
+  verdict3.classList.add('show');
+  verdict3.innerHTML = `<b>Similarity was never in the loss function.</b> The model was trained on
+    one objective only — predict the next token — over flat sequences like the ones above, with no
+    category labels anywhere. Yet <b>${lastSameCount}/${VOCAB.length}</b> tokens ended up with a
+    same-category nearest neighbor in embedding space, and the 2D projection separates into three
+    visible clusters. Tokens that occupy the same distributional contexts get pulled to the same
+    region of embedding space — that pull is entirely a side-effect of minimizing next-token
+    cross-entropy.`;
+
+  runBtn3.disabled = false;
+}
+
+runBtn3.addEventListener('click', runEmbedDemo);
+
+function resetWidget3(){
+  runGen3++; // cancels any in-flight animation loop, see the `myGen` checks above
+  runBtn3.disabled = false;
+  statusEl3.className = 'status';
+  statusText3.textContent = 'idle';
+  verdict3.classList.remove('show');
+  verdict3.innerHTML = '';
+  cvEmbed.getContext('2d').clearRect(0, 0, cvEmbed.width, cvEmbed.height);
+  lossEmbedEl.textContent = '—';
+  epochEmbedEl.textContent = '';
+  perplexEmbedEl.textContent = '';
+  nnListEl.innerHTML = '';
+  nnTallyEl.textContent = 'training…';
+  sampleSentencesEl.textContent = '—';
+}
+resetBtn3.addEventListener('click', resetWidget3);
+
+// ================================================================
+// S1-4 — Memorization vs generalization, and data closes the gap
+// ================================================================
+const DOMAIN4 = 3.3; // stays inside the shared DOMAIN=4.2 used by computeGrid/drawPanel
+const NOISE_RATE4 = 0.14;
+const TEST_SIZE4 = 600;
+const TRAIN_SIZES4 = [20, 200, 2000];
+const HIDDEN4 = 24;
+const NET_SIZES4 = [2, HIDDEN4, HIDDEN4, 1];
+const NET_ACTS4 = [ACT_RELU, ACT_RELU, ACT_ID];
+const STEPS4 = 1200;
+const CHUNK4 = 12;
+const FRAME_DELAY_MS4 = 60;
+const BATCH_CAP4 = 32;
+
+// a moderately wavy boundary — needs real nonlinear capacity to learn,
+// same "folding" story as S1-1/S1-2, just applied to a noisier task.
+function trueBoundary4(x){
+  return 1.0*Math.sin(1.1*x) + 0.35*Math.sin(2.4*x + 0.6);
+}
+function genNoisyData4(rng, n, noiseRate){
+  const pts = [];
+  for(let i=0;i<n;i++){
+    const x = (rng()*2-1)*DOMAIN4;
+    const y = (rng()*2-1)*DOMAIN4;
+    const trueLabel = y > trueBoundary4(x) ? 1 : 0;
+    const label = rng() < noiseRate ? 1-trueLabel : trueLabel;
+    pts.push({x, y, label});
+  }
+  return pts;
+}
+function bceLoss4(data, forward){
+  let total = 0;
+  for(const p of data){
+    const pred = forward(p.x, p.y);
+    const pc = Math.min(Math.max(pred, 1e-7), 1-1e-7);
+    total += -(p.label*Math.log(pc) + (1-p.label)*Math.log(1-pc));
+  }
+  return total/data.length;
+}
+function sampleBatch4(rng, data, batchSize){
+  if(data.length <= batchSize) return data;
+  const batch = [];
+  for(let i=0;i<batchSize;i++) batch.push(data[Math.floor(rng()*data.length)]);
+  return batch;
+}
+function sampleSubset4(rng, arr, k){
+  if(arr.length <= k) return arr;
+  const copy = arr.slice();
+  for(let i=0;i<k;i++){
+    const j = i + Math.floor(rng()*(copy.length-i));
+    [copy[i],copy[j]] = [copy[j],copy[i]];
+  }
+  return copy.slice(0,k);
+}
+
+function drawGapChart(canvas, points, noiseCeiling){
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#0d1220';
+  ctx.fillRect(0,0,W,H);
+
+  const padL=54, padR=24, padT=24, padB=44;
+  const plotW = W-padL-padR, plotH = H-padT-padB;
+  const yFor = pct => padT + (1-pct)*plotH;
+
+  ctx.strokeStyle = 'rgba(255,255,255,.18)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL,padT); ctx.lineTo(padL,padT+plotH); ctx.lineTo(padL+plotW,padT+plotH);
+  ctx.stroke();
+
+  ctx.font = '11px "SFMono-Regular",Consolas,monospace';
+  [0,0.25,0.5,0.75,1].forEach(p=>{
+    const yy = yFor(p);
+    ctx.strokeStyle = 'rgba(255,255,255,.07)';
+    ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(padL+plotW,yy); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.4)';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(p*100)+'%', padL-8, yy+4);
+  });
+
+  ctx.save();
+  ctx.setLineDash([5,4]);
+  ctx.strokeStyle = 'rgba(255,230,109,.55)';
+  const ncY = yFor(noiseCeiling);
+  ctx.beginPath(); ctx.moveTo(padL,ncY); ctx.lineTo(padL+plotW,ncY); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = 'rgba(255,230,109,.8)';
+  ctx.textAlign = 'right';
+  ctx.font = '10px "SFMono-Regular",Consolas,monospace';
+  ctx.fillText('noise ceiling', padL+plotW, ncY-6);
+
+  const slots = points.length;
+  const slotW = plotW/slots;
+  points.forEach((pt,i)=>{
+    const cx = padL + slotW*(i+0.5);
+    const yTrain = yFor(pt.trainAcc), yTest = yFor(pt.testAcc);
+    ctx.strokeStyle = 'rgba(255,255,255,.3)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(cx,yTrain); ctx.lineTo(cx,yTest); ctx.stroke();
+
+    ctx.beginPath(); ctx.arc(cx,yTrain,6,0,2*Math.PI);
+    ctx.fillStyle = '#ffe66d'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth=1.5; ctx.stroke();
+
+    ctx.beginPath(); ctx.arc(cx,yTest,6,0,2*Math.PI);
+    ctx.fillStyle = '#4dabf7'; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth=1.5; ctx.stroke();
+
+    ctx.fillStyle = '#e7ecf6';
+    ctx.textAlign = 'center';
+    ctx.font = '600 12px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.fillText('N = '+pt.n, cx, padT+plotH+22);
+
+    ctx.fillStyle = 'rgba(255,255,255,.65)';
+    ctx.font = '11px "SFMono-Regular",Consolas,monospace';
+    ctx.fillText(Math.round(Math.abs(pt.trainAcc-pt.testAcc)*100)+' pt gap', cx, Math.min(yTrain,yTest)-10);
+  });
+
+  ctx.textAlign = 'left';
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = '#ffe66d'; ctx.fillText('● train', padL, 14);
+  ctx.fillStyle = '#4dabf7'; ctx.fillText('● test', padL+58, 14);
+}
+
+const cvN20 = document.getElementById('cvN20');
+const cvN200 = document.getElementById('cvN200');
+const cvN2000 = document.getElementById('cvN2000');
+const cvGap = document.getElementById('cvGap');
+const panelEls4 = [
+  { canvas: cvN20,   trainEl: document.getElementById('trainAccN20'),   testEl: document.getElementById('testAccN20'),   epochEl: document.getElementById('epochN20'),   capEl: document.getElementById('capN20') },
+  { canvas: cvN200,  trainEl: document.getElementById('trainAccN200'),  testEl: document.getElementById('testAccN200'),  epochEl: document.getElementById('epochN200'),  capEl: document.getElementById('capN200') },
+  { canvas: cvN2000, trainEl: document.getElementById('trainAccN2000'), testEl: document.getElementById('testAccN2000'), epochEl: document.getElementById('epochN2000'), capEl: document.getElementById('capN2000') },
+];
+const statusEl4 = document.getElementById('statusEl4');
+const statusText4 = document.getElementById('statusText4');
+const verdict4 = document.getElementById('verdict4');
+const runBtn4 = document.getElementById('runBtn4');
+const resetBtn4 = document.getElementById('resetBtn4');
+
+let runGen4 = 0; // bumped by Reset to cancel any in-flight animation loop
+
+async function runOverfitDemo(){
+  const myGen = ++runGen4;
+  runBtn4.disabled = true;
+  verdict4.classList.remove('show');
+  statusEl4.className = 'status training';
+  statusText4.textContent = 'training…';
+
+  const seed4 = (Date.now() % 100000) + 29;
+  const rngInit = mulberry32(seed4);
+  const rngData = mulberry32(seed4+1);
+  const rngBatch = mulberry32(seed4+2);
+  const rngDisplay = mulberry32(seed4+3);
+
+  const testSet = genNoisyData4(rngData, TEST_SIZE4, NOISE_RATE4);
+  const trainSets = TRAIN_SIZES4.map(n => genNoisyData4(rngData, n, NOISE_RATE4));
+  const displaySets = trainSets.map(ts => sampleSubset4(rngDisplay, ts, 400));
+  const models = TRAIN_SIZES4.map(() => makeStackModel(rngInit, NET_SIZES4, NET_ACTS4, 0.8));
+
+  panelEls4.forEach((p,i) => {
+    const n = TRAIN_SIZES4[i];
+    p.capEl.textContent = displaySets[i].length < n
+      ? `showing ${displaySets[i].length} of ${n} training points`
+      : `showing all ${n} training points`;
+  });
+
+  let lastResults = [];
+  const renderFrame = (e) => {
+    const results = [];
+    models.forEach((model,i) => {
+      const fwd = (x,y) => stackForward(model,x,y).p;
+      const grid = computeGrid(fwd);
+      drawPanel(panelEls4[i].canvas, displaySets[i], grid);
+
+      const trainAcc = accuracy(trainSets[i], fwd);
+      const testAcc = accuracy(testSet, fwd);
+      const trainLoss = bceLoss4(trainSets[i], fwd);
+      const testLoss = bceLoss4(testSet, fwd);
+      panelEls4[i].trainEl.textContent = fmtPct(trainAcc);
+      panelEls4[i].testEl.textContent = fmtPct(testAcc);
+      panelEls4[i].trainEl.className = 'acc-val ' + (trainAcc > 0.9 ? 'high' : trainAcc < 0.6 ? 'low' : '');
+      panelEls4[i].testEl.className = 'acc-val ' + (testAcc > 0.8 ? 'high' : testAcc < 0.6 ? 'low' : '');
+      panelEls4[i].epochEl.textContent = `step ${e}/${STEPS4} · train loss ${trainLoss.toFixed(3)} · test loss ${testLoss.toFixed(3)}`;
+      results.push({ n: TRAIN_SIZES4[i], trainAcc, testAcc });
+    });
+    drawGapChart(cvGap, results, 1-NOISE_RATE4);
+    lastResults = results;
+  };
+
+  renderFrame(0);
+  await new Promise(r => setTimeout(r, FRAME_DELAY_MS4));
+  if(myGen !== runGen4) return;
+
+  for(let e=CHUNK4; e<=STEPS4; e+=CHUNK4){
+    for(let k=0;k<CHUNK4;k++){
+      models.forEach((model,i) => {
+        const batch = sampleBatch4(rngBatch, trainSets[i], BATCH_CAP4);
+        stackTrainStep(model, batch, 0.35);
+      });
+    }
+    renderFrame(e);
+    await new Promise(r => setTimeout(r, FRAME_DELAY_MS4));
+    if(myGen !== runGen4) return;
+  }
+
+  statusEl4.className = 'status done';
+  statusText4.textContent = 'done';
+  verdict4.classList.add('show');
+  const g20 = lastResults[0], g2000 = lastResults[2];
+  const gapPts = r => (Math.abs(r.trainAcc-r.testAcc)*100).toFixed(1);
+  verdict4.innerHTML = `<b>Same architecture, same optimizer, three dataset sizes.</b> At
+    <b>N=20</b> the network drives train accuracy to <b>${fmtPct(g20.trainAcc)}</b> while test
+    accuracy lags at <b>${fmtPct(g20.testAcc)}</b> — a <b>${gapPts(g20)}-point gap</b>: pure
+    memorization, including the mislabeled points. At <b>N=2000</b> the same network can no longer
+    memorize its way to a high train score — train accuracy settles at
+    <b>${fmtPct(g2000.trainAcc)}</b> — while test accuracy climbs to <b>${fmtPct(g2000.testAcc)}</b>,
+    within reach of the ${Math.round((1-NOISE_RATE4)*100)}% noise ceiling. The gap shrank from
+    <b>${gapPts(g20)} pts</b> to <b>${gapPts(g2000)} pts</b> without touching the model — only the
+    data changed.`;
+
+  runBtn4.disabled = false;
+}
+
+runBtn4.addEventListener('click', runOverfitDemo);
+
+function resetWidget4(){
+  runGen4++; // cancels any in-flight animation loop, see the `myGen` checks above
+  runBtn4.disabled = false;
+  statusEl4.className = 'status';
+  statusText4.textContent = 'idle';
+  verdict4.classList.remove('show');
+  verdict4.innerHTML = '';
+  const defaultCaps = ['showing all 20 training points', 'showing all 200 training points', 'showing 400 of 2000 training points'];
+  panelEls4.forEach((p,i) => {
+    p.canvas.getContext('2d').clearRect(0, 0, p.canvas.width, p.canvas.height);
+    p.trainEl.textContent = '—'; p.trainEl.className = 'acc-val';
+    p.testEl.textContent = '—'; p.testEl.className = 'acc-val';
+    p.epochEl.textContent = '';
+    p.capEl.textContent = defaultCaps[i];
+  });
+  cvGap.getContext('2d').clearRect(0, 0, cvGap.width, cvGap.height);
+}
+resetBtn4.addEventListener('click', resetWidget4);
+</script>
+</body>
+</html>
